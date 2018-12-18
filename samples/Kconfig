@@ -1,5 +1,0 @@
-menu "Samples"
-
-source "samples/net/Kconfig"
-
-endmenu

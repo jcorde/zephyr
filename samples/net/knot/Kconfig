@@ -1,4 +1,6 @@
-menu "KNoT"
+mainmenu "KNoT sample application"
+
+menu "KNoT Thing"
 
 config KNOT_NAME
 	string "KNoT device name"
