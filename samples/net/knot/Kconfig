@@ -11,3 +11,5 @@ config KNOT_THING_DATA_MAX
 	default 3
 
 endmenu
+
+source "Kconfig.zephyr"
