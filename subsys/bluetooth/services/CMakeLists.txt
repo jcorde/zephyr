@@ -1,2 +1,2 @@
-
 zephyr_sources_ifdef(CONFIG_BT_GATT_DIS dis.c)
+zephyr_sources_ifdef(CONFIG_BT_GATT_OT_SETUP setup_ot.c)
