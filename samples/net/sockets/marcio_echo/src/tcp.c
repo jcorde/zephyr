@@ -211,27 +211,12 @@ int process_tcp(void)
 		}
 	}
 
-//	if (IS_ENABLED(CONFIG_NET_IPV4)) {
-//		ret = process_tcp_proto(&conf.ipv4);
-//		if (ret < 0) {
-//			return ret;
-//		}
-//	}
-
 	return ret;
 }
 
 void stop_tcp(void)
 {
-	if (IS_ENABLED(CONFIG_NET_IPV6)) {
-		if (conf.ipv6.tcp.sock >= 0) {
-			(void)close(conf.ipv6.tcp.sock);
-		}
-	}
-
-	if (IS_ENABLED(CONFIG_NET_IPV4)) {
-		if (conf.ipv4.tcp.sock >= 0) {
-			(void)close(conf.ipv4.tcp.sock);
-		}
+	if (conf.ipv6.tcp.sock >= 0) {
+		(void)close(conf.ipv6.tcp.sock);
 	}
 }

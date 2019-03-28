@@ -61,11 +61,6 @@ const char lorem_ipsum[] =
 const int ipsum_len = sizeof(lorem_ipsum) - 1;
 
 struct configs conf = {
-	.ipv4 = {
-		.proto = "IPv4",
-		.udp.sock = INVALID_SOCK,
-		.tcp.sock = INVALID_SOCK,
-	},
 	.ipv6 = {
 		.proto = "IPv6",
 		.udp.sock = INVALID_SOCK,
@@ -76,34 +71,11 @@ struct configs conf = {
 static struct pollfd fds[4];
 static int nfds;
 
-#define USE_POLL_EVENT
-
-#ifdef USE_POLL_EVENT
-
 static volatile bool in_process = false;
 
 
 static void prepare_fds(void)
 {
-	nfds = 0;
-	if (conf.ipv4.udp.sock >= 0) {
-		fds[nfds].fd = conf.ipv4.udp.sock;
-		fds[nfds].events = POLLIN;
-		nfds++;
-	}
-
-	if (conf.ipv4.tcp.sock >= 0) {
-		fds[nfds].fd = conf.ipv4.tcp.sock;
-		fds[nfds].events = POLLIN;
-		nfds++;
-	}
-
-	if (conf.ipv6.udp.sock >= 0) {
-		fds[nfds].fd = conf.ipv6.udp.sock;
-		fds[nfds].events = POLLIN;
-		nfds++;
-	}
-
 	if (conf.ipv6.tcp.sock >= 0) {
 		fds[nfds].fd = conf.ipv6.tcp.sock;
 		fds[nfds].events = POLLIN|POLLOUT|POLLERR|POLLHUP|POLLNVAL;
@@ -147,42 +119,6 @@ static int wait_event( int timeout)
 	return ret;
 }
 
-static void wait(void)
-{
-	/* Wait for event on any socket used. Once event occurs,
-	 * we'll check them all.
-	 */
-	if (poll(fds, nfds, K_FOREVER) < 0) {
-		LOG_ERR("Error in poll:%d", errno);
-	}
-}
-
-#else
-static void prepare_fds(void)
-{
-	nfds = 0;
-	if (conf.ipv4.udp.sock >= 0) {
-		fds[nfds].fd = conf.ipv4.udp.sock;
-		nfds++;
-	}
-
-	if (conf.ipv4.tcp.sock >= 0) {
-		fds[nfds].fd = conf.ipv4.tcp.sock;
-		nfds++;
-	}
-
-	if (conf.ipv6.udp.sock >= 0) {
-		fds[nfds].fd = conf.ipv6.udp.sock;
-		nfds++;
-	}
-
-	if (conf.ipv6.tcp.sock >= 0) {
-		fds[nfds].fd = conf.ipv6.tcp.sock;
-		nfds++;
-	}
-}
-
-#endif  // poll event
 
 static void init_app(void)
 {
