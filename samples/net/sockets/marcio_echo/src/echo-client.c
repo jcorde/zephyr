@@ -119,24 +119,6 @@ static int wait_event( int timeout)
 	return ret;
 }
 
-
-static void init_app(void)
-{
-	LOG_INF(APP_BANNER);
-
-#if defined(CONFIG_NET_SOCKETS_SOCKOPT_TLS)
-	int err = tls_credential_add(CA_CERTIFICATE_TAG,
-				    TLS_CREDENTIAL_CA_CERTIFICATE,
-				    ca_certificate,
-				    sizeof(ca_certificate));
-	if (err < 0) {
-		LOG_ERR("Failed to register public certificate: %d", err);
-	}
-#endif
-
-	init_vlan();
-}
-
 void release_context (void)
 {
 
@@ -153,51 +135,12 @@ void release_context (void)
 	      LOG_INF("Can't release context: %d",ret);
 }
 
-bool test_if (void)
-{
-	struct net_context *tcp_ctx;
-	struct in6_addr *curr_addr;
-	int ret;
-/*
-	struct net_if *iface = net_if_get_default();
-	if (atomic_test_bit(iface->if_dev->flags, NET_IF_UP)) {
-		LOG_INF("If is up");
-		return true;
-	}
-	else
-	{
-		LOG_INF("If is down");
-		return false;
-	}
-*/
-/*
-struct in6_addr * (struct net_if *iface,
-				    enum net_addr_state addr_state);
-
-struct in6_addr *net_if_ipv6_get_ll_addr(enum net_addr_state state,
-					 struct net_if **iface);
-
-*/
-/*
-	struct net_if *iface = net_if_get_default();
-	curr_addr =  net_if_ipv6_get_ll(iface,  NET_ADDR_PREFERRED);
-	if ( curr_addr == NULL)
-		LOG_INF("IPV6 addr null");
-	curr_addr = net_if_ipv6_get_ll_addr( NET_ADDR_PREFERRED, &iface);
-	if ( curr_addr == NULL)
-		LOG_INF("IPV6 ll");
-
-*/
-
-
-}
-
 void main(void)
 {
 	int ret;
 	u32_t flags=0;
 
-	init_app();
+	LOG_INF(APP_BANNER);
 
 	flags |= NET_CONFIG_NEED_IPV6;
 	ret = net_config_init("echo",flags, K_SECONDS(10));
@@ -220,8 +163,6 @@ reconnect:
 
 	while (true) {
 
-#ifdef USE_POLL_EVENT
-
         // avoid call process_tcp() twice
 		if ( in_process == true)
 		{
@@ -236,15 +177,12 @@ reconnect:
 		}
 		wait_event(-1);
 
-#else
 
 		if (IS_ENABLED(CONFIG_NET_TCP)) {
 			ret = process_tcp();
 			if (ret < 0)
 				goto quit;
 		}
-
-#endif
 
 	}
 

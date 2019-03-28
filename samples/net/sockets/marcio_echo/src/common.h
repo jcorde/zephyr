@@ -35,14 +35,6 @@ struct configs {
 	struct data ipv6;
 };
 
-#if !defined(CONFIG_NET_CONFIG_PEER_IPV4_ADDR)
-#define CONFIG_NET_CONFIG_PEER_IPV4_ADDR ""
-#endif
-
-#if !defined(CONFIG_NET_CONFIG_PEER_IPV6_ADDR)
-#define CONFIG_NET_CONFIG_PEER_IPV6_ADDR ""
-#endif
-
 extern const char lorem_ipsum[];
 extern const int ipsum_len;
 extern struct configs conf;
@@ -54,12 +46,3 @@ void stop_udp(void);
 int start_tcp(void);
 int process_tcp(void);
 void stop_tcp(void);
-
-#if defined(CONFIG_NET_VLAN)
-int init_vlan(void);
-#else
-static inline int init_vlan(void)
-{
-	return 0;
-}
-#endif
