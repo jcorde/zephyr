@@ -15,10 +15,8 @@ LOG_MODULE_DECLARE(net_echo_client_sample, LOG_LEVEL_DBG);
 #include <stdio.h>
 
 #include <net/socket.h>
-#include <net/tls_credentials.h>
 
 #include "common.h"
-#include "ca_certificate.h"
 
 #define RECV_BUF_SIZE 128
 
