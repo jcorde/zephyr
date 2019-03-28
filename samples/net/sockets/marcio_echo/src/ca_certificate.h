@@ -14,7 +14,7 @@
 /* This is the same cert as what is found in net-tools/echo-apps-cert.pem file
  */
 static const unsigned char ca_certificate[] = {
-#include "echo-apps-cert.der.inc"
+//#include "echo-apps-cert.der.inc"
 };
 
 #endif /* __CA_CERTIFICATE_H__ */

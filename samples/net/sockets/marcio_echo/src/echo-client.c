@@ -23,11 +23,13 @@ LOG_MODULE_REGISTER(net_echo_client_sample, LOG_LEVEL_DBG);
 #include <zephyr.h>
 #include <errno.h>
 #include <stdio.h>
+
 #include <net/socket.h>
+#include <net/net_config.h>
+
 #include "common.h"
 
-
-#define APP_BANNER "BSD echo client"
+#define APP_BANNER "Run echo client"
 
 #define INVALID_SOCK (-1)
 
@@ -59,7 +61,11 @@ const char lorem_ipsum[] =
 const int ipsum_len = sizeof(lorem_ipsum) - 1;
 
 struct configs conf = {
-
+	.ipv4 = {
+		.proto = "IPv4",
+		.udp.sock = INVALID_SOCK,
+		.tcp.sock = INVALID_SOCK,
+	},
 	.ipv6 = {
 		.proto = "IPv6",
 		.udp.sock = INVALID_SOCK,
@@ -67,64 +73,207 @@ struct configs conf = {
 	},
 };
 
-struct pollfd fds[4];
-int nfds;
+static struct pollfd fds[4];
+static int nfds;
+
+#define USE_POLL_EVENT
+
+#ifdef USE_POLL_EVENT
+
+static volatile bool in_process = false;
+
 
 static void prepare_fds(void)
 {
+	nfds = 0;
+	if (conf.ipv4.udp.sock >= 0) {
+		fds[nfds].fd = conf.ipv4.udp.sock;
+		fds[nfds].events = POLLIN;
+		nfds++;
+	}
+
+	if (conf.ipv4.tcp.sock >= 0) {
+		fds[nfds].fd = conf.ipv4.tcp.sock;
+		fds[nfds].events = POLLIN;
+		nfds++;
+	}
+
+	if (conf.ipv6.udp.sock >= 0) {
+		fds[nfds].fd = conf.ipv6.udp.sock;
+		fds[nfds].events = POLLIN;
+		nfds++;
+	}
 
 	if (conf.ipv6.tcp.sock >= 0) {
 		fds[nfds].fd = conf.ipv6.tcp.sock;
-		fds[nfds].events = POLLIN|POLLHUP|POLLERR|POLLNVAL;
+		fds[nfds].events = POLLIN|POLLOUT|POLLERR|POLLHUP|POLLNVAL;
 		nfds++;
 	}
 }
 
+static int wait_event( int timeout)
+{
+    int ret;
+	  /* Wait for event on any socket used. Once event occurs,
+	  * we'll check them all.
+	  */
+	ret = poll(fds, nfds, timeout);
+	if ( ret < 0 )
+		LOG_ERR("Error in poll:%d", errno);
+    else {
+		for ( int i=0; i<nfds; i++ )
+		{
+	    	if(fds[i].revents & POLLIN) {
+		    	LOG_INF("Event IN");
+				if (IS_ENABLED(CONFIG_NET_TCP) && (in_process == false)) {
+					in_process = true;
+
+				}
+
+	    	} else if(fds[i].revents & POLLHUP) {
+		      LOG_INF("Event HUP");
+	    	} else if(fds[i].revents & POLLOUT) {
+		      LOG_INF("Event OUT");
+	    	} else if(fds[i].revents & POLLERR) {
+		      LOG_INF("Event ERR");
+	    	}
+			else
+			{
+				LOG_INF("Got event %d",fds[i].revents);
+			}
+
+		}
+	}
+	return ret;
+}
+
 static void wait(void)
 {
-	int ret;
 	/* Wait for event on any socket used. Once event occurs,
 	 * we'll check them all.
 	 */
-	ret =  poll(fds, nfds, K_FOREVER);
-
-	if ( ret < 0) {
+	if (poll(fds, nfds, K_FOREVER) < 0) {
 		LOG_ERR("Error in poll:%d", errno);
+	}
+}
+
+#else
+static void prepare_fds(void)
+{
+	nfds = 0;
+	if (conf.ipv4.udp.sock >= 0) {
+		fds[nfds].fd = conf.ipv4.udp.sock;
+		nfds++;
+	}
+
+	if (conf.ipv4.tcp.sock >= 0) {
+		fds[nfds].fd = conf.ipv4.tcp.sock;
+		nfds++;
+	}
+
+	if (conf.ipv6.udp.sock >= 0) {
+		fds[nfds].fd = conf.ipv6.udp.sock;
+		nfds++;
+	}
+
+	if (conf.ipv6.tcp.sock >= 0) {
+		fds[nfds].fd = conf.ipv6.tcp.sock;
+		nfds++;
+	}
+}
+
+#endif  // poll event
+
+static void init_app(void)
+{
+	LOG_INF(APP_BANNER);
+
+#if defined(CONFIG_NET_SOCKETS_SOCKOPT_TLS)
+	int err = tls_credential_add(CA_CERTIFICATE_TAG,
+				    TLS_CREDENTIAL_CA_CERTIFICATE,
+				    ca_certificate,
+				    sizeof(ca_certificate));
+	if (err < 0) {
+		LOG_ERR("Failed to register public certificate: %d", err);
+	}
+#endif
+
+	init_vlan();
+}
+
+void release_context (void)
+{
+
+		struct net_context *tcp_ctx;
+		int ret;
+
+		ret = net_context_get(AF_INET6, SOCK_STREAM, IPPROTO_TCP, &tcp_ctx);
+		if (!tcp_ctx || !net_context_is_used(tcp_ctx)) {
+				LOG_INF("not connected");
+				return;
+		}
+		ret = net_context_put(tcp_ctx);
+		if ( ret < 0 )
+	      LOG_INF("Can't release context: %d",ret);
+}
+
+bool test_if (void)
+{
+	struct net_context *tcp_ctx;
+	struct in6_addr *curr_addr;
+	int ret;
+/*
+	struct net_if *iface = net_if_get_default();
+	if (atomic_test_bit(iface->if_dev->flags, NET_IF_UP)) {
+		LOG_INF("If is up");
+		return true;
 	}
 	else
 	{
-		if(fds[0].revents & POLLNVAL) {
-			LOG_INF("Event NVAL");
-		}
-		else if(fds[0].revents & POLLHUP) {
-			close(fds[0].fd);
-			LOG_INF("Event HUP");
-		}
-		else if(fds[0].revents & POLLERR) {
-			close(fds[0].fd);
-			LOG_INF("Event ERR");
-		}
-		else if(fds[0].revents & POLLIN)  {
-			LOG_INF("Event IN");
-			zsock_shutdown(fds[0].fd,ZSOCK_SHUT_RDWR );
-		}
-		else
-			LOG_INF("Event %d",fds[0].revents);
+		LOG_INF("If is down");
+		return false;
 	}
+*/
+/*
+struct in6_addr * (struct net_if *iface,
+				    enum net_addr_state addr_state);
+
+struct in6_addr *net_if_ipv6_get_ll_addr(enum net_addr_state state,
+					 struct net_if **iface);
+
+*/
+/*
+	struct net_if *iface = net_if_get_default();
+	curr_addr =  net_if_ipv6_get_ll(iface,  NET_ADDR_PREFERRED);
+	if ( curr_addr == NULL)
+		LOG_INF("IPV6 addr null");
+	curr_addr = net_if_ipv6_get_ll_addr( NET_ADDR_PREFERRED, &iface);
+	if ( curr_addr == NULL)
+		LOG_INF("IPV6 ll");
+
+*/
+
 
 }
-
 
 void main(void)
 {
 	int ret;
+	u32_t flags=0;
 
-    LOG_INF(APP_BANNER);
+	init_app();
+
+	flags |= NET_CONFIG_NEED_IPV6;
+	ret = net_config_init("echo",flags, K_SECONDS(10));
+	if ( ret == 0)
+		LOG_INF("Net config ok");
+	else
+		LOG_ERR("Net config err...");
 
 reconnect:
 
 	if (IS_ENABLED(CONFIG_NET_TCP)) {
-		LOG_INF("Calling start_tcp");
+		LOG_INF("Call start_tcp");
 		ret = start_tcp();
 		if (ret < 0) {
 			goto quit;
@@ -134,23 +283,43 @@ reconnect:
 	prepare_fds();
 
 	while (true) {
-		if (IS_ENABLED(CONFIG_NET_TCP)) {
-			LOG_INF("Calling process_tcp");
-			ret = process_tcp();
-			if (ret < 0) {
-				goto quit;
-			}
+
+#ifdef USE_POLL_EVENT
+
+        // avoid call process_tcp() twice
+		if ( in_process == true)
+		{
+				if (IS_ENABLED(CONFIG_NET_TCP)) {
+						LOG_INF("Call process_tcp");
+						ret = process_tcp();
+						in_process = false;
+						if (ret < 0)
+							goto quit;
+				}
+
 		}
-		wait();
+		wait_event(-1);
+
+#else
+
+		if (IS_ENABLED(CONFIG_NET_TCP)) {
+			ret = process_tcp();
+			if (ret < 0)
+				goto quit;
+		}
+
+#endif
+
 	}
 
 quit:
-	LOG_INF("Stopping...");
+    LOG_INF("Stopping...");
 
-	if (IS_ENABLED(CONFIG_NET_TCP)) {
-		stop_tcp();
-	}
-	k_sleep(5000);
-	LOG_INF("Reconnecting...");
-	goto reconnect;
+    if (IS_ENABLED(CONFIG_NET_TCP)) {
+		    stop_tcp();
+	  }
+	  release_context();
+	  k_sleep(10000);
+	  LOG_INF("Reconnecting...");
+	  goto reconnect;
 }
