@@ -149,19 +149,22 @@ int start_tcp(void)
 	int ret = 0;
 	struct sockaddr_in6 addr6;
 
-	if (IS_ENABLED(CONFIG_NET_IPV6)) {
-		addr6.sin6_family = AF_INET6;
-		addr6.sin6_port = htons(PEER_PORT);
-		ret = inet_pton(AF_INET6, CONFIG_NET_CONFIG_PEER_IPV6_ADDR,
-			  &addr6.sin6_addr);
-        if ( ret <= 0)
-		    return -EFAULT;
-		ret = start_tcp_proto(&conf.ipv6, (struct sockaddr *)&addr6,
-				      sizeof(addr6));
-		if (ret < 0) {
-			return ret;
-		}
+	addr6.sin6_family = AF_INET6;
+	addr6.sin6_port = htons(PEER_PORT);
+	ret = inet_pton(AF_INET6, CONFIG_NET_CONFIG_PEER_IPV6_ADDR,
+			&addr6.sin6_addr);
+	if ( ret <= 0)
+		return -EFAULT;
+
+	ret = start_tcp_proto(&conf.ipv6, (struct sockaddr *)&addr6,
+				sizeof(addr6));
+	if (ret < 0) {
+		return ret;
 	}
+
+
+
+
 
 
 	if (IS_ENABLED(CONFIG_NET_IPV6)) {
@@ -178,11 +181,9 @@ int process_tcp(void)
 {
 	int ret = 0;
 
-	if (IS_ENABLED(CONFIG_NET_IPV6)) {
-		ret = process_tcp_proto(&conf.ipv6);
-		if (ret < 0) {
-			return ret;
-		}
+	ret = process_tcp_proto(&conf.ipv6);
+	if (ret < 0) {
+		return ret;
 	}
 
 	return ret;

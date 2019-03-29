@@ -76,6 +76,7 @@ static volatile bool in_process = false;
 
 static void prepare_fds(void)
 {
+	// nfds = 0;
 	if (conf.ipv6.tcp.sock >= 0) {
 		fds[nfds].fd = conf.ipv6.tcp.sock;
 		fds[nfds].events = POLLIN|POLLOUT|POLLERR|POLLHUP|POLLNVAL;
@@ -85,34 +86,34 @@ static void prepare_fds(void)
 
 static int wait_event( int timeout)
 {
-    int ret;
-	  /* Wait for event on any socket used. Once event occurs,
-	  * we'll check them all.
-	  */
+	int ret;
+	/* Wait for event on any socket used. Once event occurs,
+	* we'll check them all.
+	*/
 	ret = poll(fds, nfds, timeout);
 	if ( ret < 0 )
 		LOG_ERR("Error in poll:%d", errno);
-    else {
-		for ( int i=0; i<nfds; i++ )
-		{
-	    	if(fds[i].revents & POLLIN) {
-		    	LOG_INF("Event IN");
-				if (IS_ENABLED(CONFIG_NET_TCP) && (in_process == false)) {
-					in_process = true;
+	else {
+		for ( int i=0; i<nfds; i++ ) {
+			if(fds[i].revents & POLLIN) {
+				LOG_INF("Event IN");
+					if (in_process == false) {
+						in_process = true;
+					}
 
-				}
-
-	    	} else if(fds[i].revents & POLLHUP) {
-		      LOG_INF("Event HUP");
-	    	} else if(fds[i].revents & POLLOUT) {
-		      LOG_INF("Event OUT");
-	    	} else if(fds[i].revents & POLLERR) {
-		      LOG_INF("Event ERR");
-	    	}
-			else
-			{
-				LOG_INF("Got event %d",fds[i].revents);
 			}
+			if(fds[i].revents & POLLHUP) {
+			LOG_INF("Event HUP");
+			}
+			if(fds[i].revents & POLLOUT) {
+			LOG_INF("Event OUT");
+			}
+			if(fds[i].revents & POLLERR) {
+			LOG_INF("Event ERR");
+			}
+
+
+			LOG_INF("Got event %d",fds[i].revents);
 
 		}
 	}
@@ -151,49 +152,34 @@ void main(void)
 
 reconnect:
 
-	if (IS_ENABLED(CONFIG_NET_TCP)) {
-		LOG_INF("Call start_tcp");
-		ret = start_tcp();
-		if (ret < 0) {
-			goto quit;
-		}
-	}
+	LOG_INF("Call start_tcp");
+	ret = start_tcp();
+	if (ret < 0)
+		goto quit;
 
 	prepare_fds();
 
 	while (true) {
-
-        // avoid call process_tcp() twice
+		// avoid call process_tcp() twice
 		if ( in_process == true)
 		{
-				if (IS_ENABLED(CONFIG_NET_TCP)) {
-						LOG_INF("Call process_tcp");
-						ret = process_tcp();
-						in_process = false;
-						if (ret < 0)
-							goto quit;
-				}
+			LOG_INF("Call process_tcp");
+			ret = process_tcp();
+			in_process = false;
+			if (ret < 0)
+				goto quit;
 
 		}
 		wait_event(-1);
-
-
-		if (IS_ENABLED(CONFIG_NET_TCP)) {
-			ret = process_tcp();
-			if (ret < 0)
-				goto quit;
-		}
-
 	}
 
 quit:
-    LOG_INF("Stopping...");
+	LOG_INF("Stopping...");
+	stop_tcp();
 
-    if (IS_ENABLED(CONFIG_NET_TCP)) {
-		    stop_tcp();
-	  }
-	  release_context();
-	  k_sleep(10000);
-	  LOG_INF("Reconnecting...");
-	  goto reconnect;
+	// TODO: Check if context exists
+	release_context();
+	k_sleep(10000);
+	LOG_INF("Reconnecting...");
+	goto reconnect;
 }
