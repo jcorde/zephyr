@@ -58,6 +58,11 @@ static int send_tcp_data(struct data *data)
 	return ret;
 }
 
+int send_data_mod(void)
+{
+	return send_tcp_data(&conf.ipv6);
+}
+
 static int compare_tcp_data(struct data *data, const char *buf, u32_t received)
 {
 	if (data->tcp.received + received > data->tcp.expecting) {
@@ -160,18 +165,6 @@ int start_tcp(void)
 				sizeof(addr6));
 	if (ret < 0) {
 		return ret;
-	}
-
-
-
-
-
-
-	if (IS_ENABLED(CONFIG_NET_IPV6)) {
-		ret = send_tcp_data(&conf.ipv6);
-		if (ret < 0) {
-			return ret;
-		}
 	}
 
 	return ret;

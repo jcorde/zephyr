@@ -76,7 +76,7 @@ static volatile bool in_process = false;
 
 static void prepare_fds(void)
 {
-	// nfds = 0;
+	nfds = 0;
 	if (conf.ipv6.tcp.sock >= 0) {
 		fds[nfds].fd = conf.ipv6.tcp.sock;
 		fds[nfds].events = POLLIN|POLLOUT|POLLERR|POLLHUP|POLLNVAL;
@@ -120,35 +120,11 @@ static int wait_event( int timeout)
 	return ret;
 }
 
-void release_context (void)
-{
-
-		struct net_context *tcp_ctx;
-		int ret;
-
-		ret = net_context_get(AF_INET6, SOCK_STREAM, IPPROTO_TCP, &tcp_ctx);
-		if (!tcp_ctx || !net_context_is_used(tcp_ctx)) {
-				LOG_INF("not connected");
-				return;
-		}
-		ret = net_context_put(tcp_ctx);
-		if ( ret < 0 )
-	      LOG_INF("Can't release context: %d",ret);
-}
-
 void main(void)
 {
 	int ret;
-	u32_t flags=0;
 
 	LOG_INF(APP_BANNER);
-
-	flags |= NET_CONFIG_NEED_IPV6;
-	ret = net_config_init("echo",flags, K_SECONDS(10));
-	if ( ret == 0)
-		LOG_INF("Net config ok");
-	else
-		LOG_ERR("Net config err...");
 
 reconnect:
 
@@ -156,6 +132,9 @@ reconnect:
 	ret = start_tcp();
 	if (ret < 0)
 		goto quit;
+
+
+	send_data_mod();
 
 	prepare_fds();
 
@@ -177,9 +156,7 @@ quit:
 	LOG_INF("Stopping...");
 	stop_tcp();
 
-	// TODO: Check if context exists
-	release_context();
-	k_sleep(10000);
+	k_sleep(5000);
 	LOG_INF("Reconnecting...");
 	goto reconnect;
 }
