@@ -8,7 +8,7 @@
 /* Value of 0 will cause the IP stack to select next free port */
 #define MY_PORT 0
 
-#define PEER_PORT 8886
+#define PEER_PORT 4242
 
 struct data {
 	const char *proto;
