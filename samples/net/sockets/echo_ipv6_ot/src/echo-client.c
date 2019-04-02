@@ -60,25 +60,18 @@ const char lorem_ipsum[] =
 
 const int ipsum_len = sizeof(lorem_ipsum) - 1;
 
-struct configs conf = {
-	.ipv6 = {
-		.proto = "IPv6",
-		.udp.sock = INVALID_SOCK,
-		.tcp.sock = INVALID_SOCK,
-	},
+struct data conf = {
+	.sock = INVALID_SOCK,
 };
 
 static struct pollfd fds;
 
 static volatile bool in_process = false;
 
-
 static void prepare_fds(void)
 {
-	if (conf.ipv6.tcp.sock >= 0) {
-		fds.fd = conf.ipv6.tcp.sock;
-		fds.events = POLLIN|POLLOUT|POLLERR|POLLHUP|POLLNVAL;
-	}
+	fds.fd = conf.sock;
+	fds.events = POLLIN|POLLOUT|POLLERR|POLLHUP|POLLNVAL;
 }
 
 static int wait_event( int timeout)
@@ -101,17 +94,14 @@ static int wait_event( int timeout)
 
 	}
 
-	if(fds.revents & POLLHUP) {
+	if(fds.revents & POLLHUP)
 		LOG_INF("Event HUP");
-	}
 
-	if(fds.revents & POLLOUT) {
+	if(fds.revents & POLLOUT)
 		LOG_INF("Event OUT");
-	}
 
-	if(fds.revents & POLLERR) {
+	if(fds.revents & POLLERR)
 		LOG_INF("Event ERR");
-	}
 
 	LOG_INF("Got event %d",fds.revents);
 
