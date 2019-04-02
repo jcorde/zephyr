@@ -35,7 +35,7 @@ static ssize_t sendall(const void *buf, size_t len)
 	return 0;
 }
 
-static int send_tcp_data(void)
+int send_tcp_data(void)
 {
 	int ret;
 
@@ -53,11 +53,6 @@ static int send_tcp_data(void)
 		LOG_DBG("TCP: Sent %d bytes", conf.expecting);
 
 	return ret;
-}
-
-int send_data_mod(void)
-{
-	return send_tcp_data();
 }
 
 static int compare_tcp_data(const char *buf, u32_t received)
@@ -95,7 +90,7 @@ static int start_tcp_proto(struct sockaddr *addr,
 	return ret;
 }
 
-static int process_tcp_proto(void)
+int process_tcp(void)
 {
 	int ret, received;
 	char buf[RECV_BUF_SIZE];
@@ -158,18 +153,6 @@ int start_tcp(void)
 
 	ret = start_tcp_proto((struct sockaddr *)&addr6,
 				sizeof(addr6));
-	if (ret < 0) {
-		return ret;
-	}
-
-	return ret;
-}
-
-int process_tcp(void)
-{
-	int ret = 0;
-
-	ret = process_tcp_proto();
 	if (ret < 0) {
 		return ret;
 	}
