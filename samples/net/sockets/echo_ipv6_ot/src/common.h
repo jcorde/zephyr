@@ -29,4 +29,4 @@ int start_tcp(void);
 int process_tcp(void);
 void stop_tcp(void);
 
-int send_data_mod(void);
+int send_tcp_data(void);

@@ -81,10 +81,8 @@ static int wait_event( int timeout)
 	 * Check if any event occurred on fds poll fds.
 	 */
 	ret = zsock_poll(&fds, 1, timeout);
-	if ( ret < 0 ) {
+	if ( ret < 0 )
 		LOG_ERR("Error in poll:%d", errno);
-		goto done;
-	}
 
 	if(fds.revents & ZSOCK_POLLIN) {
 		LOG_INF("Event IN");
@@ -105,7 +103,6 @@ static int wait_event( int timeout)
 
 	LOG_INF("Got event %d",fds.revents);
 
-done:
 	return ret;
 }
 
@@ -122,8 +119,7 @@ reconnect:
 	if (ret < 0)
 		goto quit;
 
-
-	send_data_mod();
+	send_tcp_data();
 
 	prepare_fds();
 
@@ -131,7 +127,7 @@ reconnect:
 		// avoid call process_tcp() twice
 		if ( in_process == true)
 		{
-			LOG_INF("Call process_tcp");
+			LOG_INF("Processing incomming data");
 			ret = process_tcp();
 			in_process = false;
 			if (ret < 0)
