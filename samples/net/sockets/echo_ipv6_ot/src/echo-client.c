@@ -64,14 +64,14 @@ struct data conf = {
 	.sock = INVALID_SOCK,
 };
 
-static struct pollfd fds;
+static struct zsock_pollfd fds;
 
 static volatile bool in_process = false;
 
 static void prepare_fds(void)
 {
 	fds.fd = conf.sock;
-	fds.events = POLLIN|POLLOUT|POLLERR|POLLHUP|POLLNVAL;
+	fds.events = ZSOCK_POLLIN | ZSOCK_POLLOUT;
 }
 
 static int wait_event( int timeout)
@@ -80,13 +80,13 @@ static int wait_event( int timeout)
 	/*
 	 * Check if any event occurred on fds poll fds.
 	 */
-	ret = poll(&fds, 1, timeout);
+	ret = zsock_poll(&fds, 1, timeout);
 	if ( ret < 0 ) {
 		LOG_ERR("Error in poll:%d", errno);
 		goto done;
 	}
 
-	if(fds.revents & POLLIN) {
+	if(fds.revents & ZSOCK_POLLIN) {
 		LOG_INF("Event IN");
 		if (in_process == false) {
 			in_process = true;
@@ -94,13 +94,13 @@ static int wait_event( int timeout)
 
 	}
 
-	if(fds.revents & POLLHUP)
+	if(fds.revents & ZSOCK_POLLHUP)
 		LOG_INF("Event HUP");
 
-	if(fds.revents & POLLOUT)
+	if(fds.revents & ZSOCK_POLLOUT)
 		LOG_INF("Event OUT");
 
-	if(fds.revents & POLLERR)
+	if(fds.revents & ZSOCK_POLLERR)
 		LOG_INF("Event ERR");
 
 	LOG_INF("Got event %d",fds.revents);
