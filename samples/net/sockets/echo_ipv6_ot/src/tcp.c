@@ -20,10 +20,10 @@ LOG_MODULE_DECLARE(net_echo_client_sample, LOG_LEVEL_DBG);
 
 #define RECV_BUF_SIZE 128
 
-static ssize_t sendall(int sock, const void *buf, size_t len)
+static ssize_t sendall(const void *buf, size_t len)
 {
 	while (len) {
-		ssize_t out_len = send(sock, buf, len, 0);
+		ssize_t out_len = send(conf.sock, buf, len, 0);
 
 		if (out_len < 0) {
 			return out_len;
@@ -35,78 +35,73 @@ static ssize_t sendall(int sock, const void *buf, size_t len)
 	return 0;
 }
 
-static int send_tcp_data(struct data *data)
+static int send_tcp_data(void)
 {
 	int ret;
 
 	do {
-		data->tcp.expecting = sys_rand32_get() % ipsum_len;
-	} while (data->tcp.expecting == 0);
+		conf.expecting = sys_rand32_get() % ipsum_len;
+	} while (conf.expecting == 0);
 
-	data->tcp.received = 0U;
+	conf.received = 0U;
 
-	ret =  sendall(data->tcp.sock, lorem_ipsum, data->tcp.expecting);
+	ret =  sendall(lorem_ipsum, conf.expecting);
 
-	if (ret < 0) {
-		LOG_ERR("%s TCP: Failed to send data, errno %d", data->proto,
-			errno);
-	} else {
-		LOG_DBG("%s TCP: Sent %d bytes", data->proto,
-			data->tcp.expecting);
-	}
+	if (ret < 0)
+		LOG_ERR("TCP: Failed to send data, errno %d", errno);
+	else
+		LOG_DBG("TCP: Sent %d bytes", conf.expecting);
 
 	return ret;
 }
 
 int send_data_mod(void)
 {
-	return send_tcp_data(&conf.ipv6);
+	return send_tcp_data();
 }
 
-static int compare_tcp_data(struct data *data, const char *buf, u32_t received)
+static int compare_tcp_data(const char *buf, u32_t received)
 {
-	if (data->tcp.received + received > data->tcp.expecting) {
-		LOG_ERR("Too much data received: TCP %s", data->proto);
+	if (conf.received + received > conf.expecting) {
+		LOG_ERR("Too much data received: TCP");
 		return -EIO;
 	}
 
-	if (memcmp(buf, lorem_ipsum + data->tcp.received, received) != 0) {
-		LOG_ERR("Invalid data received: TCP %s", data->proto);
+	if (memcmp(buf, lorem_ipsum + conf.received, received) != 0) {
+		LOG_ERR("Invalid data received: TCP");
 		return -EIO;
 	}
 
 	return 0;
 }
 
-static int start_tcp_proto(struct data *data, struct sockaddr *addr,
+static int start_tcp_proto(struct sockaddr *addr,
 			   socklen_t addrlen)
 {
 	int ret;
 
-	data->tcp.sock = socket(addr->sa_family, SOCK_STREAM, IPPROTO_TCP);
-	if (data->tcp.sock < 0) {
-		LOG_ERR("Failed to create TCP socket (%s): %d", data->proto,
-			errno);
+	conf.sock = socket(addr->sa_family, SOCK_STREAM, IPPROTO_TCP);
+	if (conf.sock < 0) {
+		LOG_ERR("Failed to create TCP socket: %d", errno);
 		return -errno;
 	}
 
-	ret = connect(data->tcp.sock, addr, addrlen);
+	ret = connect(conf.sock, addr, addrlen);
 	if (ret < 0) {
-		LOG_ERR("Cannot connect to TCP remote (%s): %d", data->proto,
-			errno);
+		LOG_ERR("Cannot connect to TCP remote: %d", errno);
 		ret = -errno;
 	}
 
 	return ret;
 }
 
-static int process_tcp_proto(struct data *data)
+static int process_tcp_proto(void)
 {
 	int ret, received;
 	char buf[RECV_BUF_SIZE];
 
 	do {
-		received = recv(data->tcp.sock, buf, sizeof(buf), MSG_DONTWAIT);
+		received = recv(conf.sock, buf, sizeof(buf), MSG_DONTWAIT);
 
 		/* No data or error. */
 		if (received == 0) {
@@ -121,28 +116,27 @@ static int process_tcp_proto(struct data *data)
 			continue;
 		}
 
-		ret = compare_tcp_data(data, buf, received);
+		ret = compare_tcp_data(buf, received);
 		if (ret != 0) {
 			break;
 		}
 
 		/* Successful comparison. */
-		data->tcp.received += received;
-		if (data->tcp.received < data->tcp.expecting) {
+		conf.received += received;
+		if (conf.received < conf.expecting) {
 			continue;
 		}
 
 		/* Response complete */
-		LOG_DBG("%s TCP: Received and compared %d bytes, all ok",
-			data->proto, data->tcp.received);
+		LOG_DBG("TCP: Received and compared %d bytes, all ok",
+			conf.received);
 
 
-		if (++data->tcp.counter % 1000 == 0) {
-			LOG_INF("%s TCP: Exchanged %u packets", data->proto,
-				data->tcp.counter);
+		if (++conf.counter % 1000 == 0) {
+			LOG_INF("TCP: Exchanged %u packets", conf.counter);
 		}
 		k_sleep(1000);
-		ret = send_tcp_data(data);
+		ret = send_tcp_data();
 		break;
 	} while (received > 0);
 
@@ -161,7 +155,7 @@ int start_tcp(void)
 	if ( ret <= 0)
 		return -EFAULT;
 
-	ret = start_tcp_proto(&conf.ipv6, (struct sockaddr *)&addr6,
+	ret = start_tcp_proto((struct sockaddr *)&addr6,
 				sizeof(addr6));
 	if (ret < 0) {
 		return ret;
@@ -174,7 +168,7 @@ int process_tcp(void)
 {
 	int ret = 0;
 
-	ret = process_tcp_proto(&conf.ipv6);
+	ret = process_tcp_proto();
 	if (ret < 0) {
 		return ret;
 	}
@@ -184,7 +178,7 @@ int process_tcp(void)
 
 void stop_tcp(void)
 {
-	if (conf.ipv6.tcp.sock >= 0) {
-		(void)close(conf.ipv6.tcp.sock);
+	if (conf.sock >= 0) {
+		(void)close(conf.sock);
 	}
 }

@@ -11,33 +11,15 @@
 #define PEER_PORT 4242
 
 struct data {
-	const char *proto;
-
-	struct {
-		int sock;
-		/* Work controlling udp data sending */
-		struct k_delayed_work recv;
-		struct k_delayed_work transmit;
-		u32_t expecting;
-		u32_t counter;
-	} udp;
-
-	struct {
-		int sock;
-		u32_t expecting;
-		u32_t received;
-		u32_t counter;
-	} tcp;
-};
-
-struct configs {
-	struct data ipv4;
-	struct data ipv6;
+	int sock;
+	u32_t expecting;
+	u32_t received;
+	u32_t counter;
 };
 
 extern const char lorem_ipsum[];
 extern const int ipsum_len;
-extern struct configs conf;
+extern struct data conf;
 
 int start_udp(void);
 int process_udp(void);
