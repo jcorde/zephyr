@@ -23,7 +23,7 @@ LOG_MODULE_DECLARE(net_echo_client_sample, LOG_LEVEL_DBG);
 static ssize_t sendall(const void *buf, size_t len)
 {
 	while (len) {
-		ssize_t out_len = send(conf.sock, buf, len, 0);
+		ssize_t out_len = zsock_send(conf.sock, buf, len, 0);
 
 		if (out_len < 0) {
 			return out_len;
@@ -80,13 +80,13 @@ static int start_tcp_proto(struct sockaddr *addr,
 {
 	int ret;
 
-	conf.sock = socket(addr->sa_family, SOCK_STREAM, IPPROTO_TCP);
+	conf.sock = zsock_socket(addr->sa_family, SOCK_STREAM, IPPROTO_TCP);
 	if (conf.sock < 0) {
 		LOG_ERR("Failed to create TCP socket: %d", errno);
 		return -errno;
 	}
 
-	ret = connect(conf.sock, addr, addrlen);
+	ret = zsock_connect(conf.sock, addr, addrlen);
 	if (ret < 0) {
 		LOG_ERR("Cannot connect to TCP remote: %d", errno);
 		ret = -errno;
@@ -101,7 +101,8 @@ static int process_tcp_proto(void)
 	char buf[RECV_BUF_SIZE];
 
 	do {
-		received = recv(conf.sock, buf, sizeof(buf), MSG_DONTWAIT);
+		received = zsock_recv(conf.sock, buf, sizeof(buf),
+		ZSOCK_MSG_DONTWAIT);
 
 		/* No data or error. */
 		if (received == 0) {
@@ -150,7 +151,7 @@ int start_tcp(void)
 
 	addr6.sin6_family = AF_INET6;
 	addr6.sin6_port = htons(PEER_PORT);
-	ret = inet_pton(AF_INET6, CONFIG_NET_CONFIG_PEER_IPV6_ADDR,
+	ret = zsock_inet_pton(AF_INET6, CONFIG_NET_CONFIG_PEER_IPV6_ADDR,
 			&addr6.sin6_addr);
 	if ( ret <= 0)
 		return -EFAULT;
@@ -179,6 +180,6 @@ int process_tcp(void)
 void stop_tcp(void)
 {
 	if (conf.sock >= 0) {
-		(void)close(conf.sock);
+		(void)zsock_close(conf.sock);
 	}
 }
