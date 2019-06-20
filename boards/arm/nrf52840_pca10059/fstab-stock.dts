@@ -47,7 +47,7 @@
 
 		ot_partition: partition@fe000 {
 			label = "ot-storage";
-			reg = <0x000ce000 0x00002000>;
+			reg = <0x000d6000 0x00004000>;
 		};
 
 		scratch_partition: partition@d0000 {
