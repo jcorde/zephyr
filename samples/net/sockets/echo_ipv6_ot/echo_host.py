@@ -6,6 +6,8 @@ PORT = int(sys.argv[2])
 tcp = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
 orig = (HOST,PORT)
 
+tcp.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
 tcp.bind(orig)
 tcp.listen(1)
 print "Listening"
@@ -22,5 +24,5 @@ while True:
     except Exception as e:
         conn.close()
         raise e
-    
+
     conn.close()
