@@ -1,0 +1,9 @@
+# Kconfig - KNoT Mesh board configuration
+#
+# Copyright (c) 2018 Nordic Semiconductor ASA
+#
+# SPDX-License-Identifier: Apache-2.0
+
+config  BOARD_KNOT_MESH
+	bool "KNOT MESH"
+	depends on SOC_NRF52840_QIAA
