@@ -90,8 +90,8 @@
 
 &i2c0 {
 	status = "ok";
-	sda-pin = <26>;
-	scl-pin = <27>;
+	sda-pin = <5>;
+	scl-pin = <28>;
 };
 
 &i2c1 {
@@ -110,7 +110,7 @@
 	/* status = "ok"; */
 	sck-pin = <21>;
 	mosi-pin = <20>;
-	miso-pin = <21>;
+	miso-pin = <27>;
 };
 
 &spi1 {
