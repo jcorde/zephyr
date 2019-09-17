@@ -1,4 +1,8 @@
 /*
+ * Code based on nrf52840_pca10059.
+ * Base commit: aacdd64584c6e2d8800129ab2829d735fe23f74d
+ */
+/*
  * Copyright (c) 2018 Nordic Semiconductor ASA.
  *
  * SPDX-License-Identifier: Apache-2.0

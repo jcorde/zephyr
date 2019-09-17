@@ -1,3 +1,8 @@
+#
+# Code based on nrf52840_pca10059.
+# Base commit: b8d3ee8afb49d27c3e0c2aba946629620f3f3dd0
+#
+
 # Kconfig - KNoT Mesh board configuration
 #
 # Copyright (c) 2018 Nordic Semiconductor ASA

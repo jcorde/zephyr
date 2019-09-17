@@ -1,3 +1,8 @@
+#
+# Code based on nrf52840_pca10059.
+# Base commit: 38d186a878213e6a5863805c98c20bd81cfb2c84
+#
+
 # SPDX-License-Identifier: Apache-2.0
 
 CONFIG_ARM=y

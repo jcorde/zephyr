@@ -1,4 +1,9 @@
 /*
+ * Code based on nrf52840_pca10059.
+ * Base commit: c616f215b0e04376d80320e32988eb763738a65b
+ */
+
+/*
  * Copyright (c) 2018 Nordic Semiconductor ASA
  * Copyright (c) 2017 Linaro Limited
  *
